@@ -1,13 +1,12 @@
-# Set your Azure subscription, connection and Function App details
+#define variable
 $azureAppSecret = ""
 $azureAppId = "8cf8fb35-19b4-43f2-90a6-0e79ae2f250f"
 $azureTenantID = "fca0e4d8-0662-4810-8300-c384b3e50f2b"
 $subscriptionId = "0dee0052-adfc-4ced-9f1f-ba13b3158f5c"
-$storageName = "backupfunappstorage"
-$containerName = "resources-data"
-$resourceGroupName = "BackupFunctionsRG"
+$displayName = "George"
+$resourceGroupName = "BackupFunctionsApp1_group"
+$functionAppName = "BackupFunctionsApp1"
 
-# Setting error action as we are not using try catch
 $ErrorActionPreference = "Stop"
 
 # Connect Azure Function
@@ -52,27 +51,24 @@ function Connect-AzWithServicePrincipal {
 # Connect Azure
 Connect-AzWithServicePrincipal -TenantId $azureTenantID -ClientId $azureAppId -ClientSecret $azureAppSecret -SubscriptionId $subscriptionId
 
-# Fetching Azure resources, sort and convert to json
-Write-Host "Fetching Azure resources data - Start"
-$resourcesInJson = Get-AzResource | Sort-Object -Property ResourceType | ConvertTo-Json -Depth 10
-Write-Host "Fetching Azure resources data - Completed"
 
-# Create a temporary file
-$tempFilePath = [System.IO.Path]::GetTempFileName() + ".json"
-Set-Content -Path $tempFilePath -Value $resourcesInJson
+# Get the user object based on display name
+$user = Get-AzADUser -Filter "displayName eq '$displayName'"
 
-# fetch destination storage account
-Write-Host "Getting $storageName storage account details - Start"
-$storage = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $storageName
-Write-Host "Getting $storageName storage account details - End"
+if ($null -eq $user) {
+    Write-Host "User with display name '$displayName' not found."
+    exit
+}
 
-# create a container
-Write-Host "Creating storage Container"
-$timestamp = Get-Date -Format "yyyyMMddHHmmss"
-New-AzStorageContainer -Name $containerName-$timestamp -Context $storage.Context
-Write-Host "New container is created"
+# Get the Function App
+$functionApp = Get-AzFunctionApp -ResourceGroupName $resourceGroupName -Name $functionAppName -Verbose
 
-# Uploading json file
-Write-Host "Pushing Azure data to container"
-Set-AzStorageBlobContent -File $tempFilePath -Container $containerName-$timestamp -Context $storage.Context -Force
-Write-Host "JSON Data Successfully uploaded"
+if ($null -eq $functionApp) {
+    Write-Host "Function App '$functionAppName' not found in resource group '$resourceGroupName'."
+    exit
+}
+
+# Assign the Contributor role to the user for the Function App
+New-AzRoleAssignment -ObjectId $user.Id -RoleDefinitionName "Contributor" -Scope $functionApp.Id -Verbose
+
+Write-Host "Contributor access has been granted to user '$displayName' for the Function App '$functionAppName'."

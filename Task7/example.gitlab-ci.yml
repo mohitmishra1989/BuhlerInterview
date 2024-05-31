@@ -1,0 +1,40 @@
+default:
+  image: buhlergroup.azurecr.io/build-agent-linux:latest
+  tags:
+  - linux
+
+stages:
+  - test
+  - EnsureBlobBackup
+
+test:
+  stage: test
+  script:
+    - echo "Running Pester tests from push event..."
+    - echo "Running on environment dev"
+    - pwsh -Command "./source/Backup/Backup_Blob/Run-EnsureScript.ps1 -Environment dev -ExcludedTags 'DeletedState'"
+  artifacts:
+    paths:
+    - artifacts/
+    when: always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+
+.EnsureBackup_template: &EnsureBlobBackup_definition
+  stage: EnsureBlobBackup
+  script:
+    - pwsh -Command "./source/Backup/Backup_Blob/Run-EnsureScript.ps1 -Environment $Environment -ExcludedTags $ExcludedTags"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+EnsureBlobBackup_dev:
+  <<: *EnsureBlobBackup_definition
+  when: always
+  rules:
+    - if: $Environment == "dev"
+
+EnsureBlobBackup_prod:
+  <<: *EnsureBlobBackup_definition
+  when: always
+  rules:
+    - if: $Environment == "prod"

@@ -1,0 +1,23 @@
+# azure-pipelines.yml
+trigger:
+- main
+
+stages:
+- stage: Dev
+  displayName: 'Deploy to Development'
+  jobs:
+  - template: deploy-job-template.yml
+
+- stage: QA
+  displayName: 'Deploy to QA'
+  jobs:
+  - template: deploy-job-template.yml
+    parameters:
+      environment: 'qa'
+
+- stage: Prod
+  displayName: 'Deploy to Production'
+  jobs:
+  - template: deploy-job-template.yml
+    parameters:
+      environment: 'prod'

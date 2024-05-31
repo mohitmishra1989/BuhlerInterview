@@ -1,0 +1,52 @@
+default:
+section defines the default settings for all the jobs. It specifies the Docker image to use (buhlergroup.azurecr.io/build-agent-linux:latest) and the tag (linux).
+
+Stages:
+Define the total stages in the pipeline. It has 2 stages called test and EnsureBlobBackup
+
+test:
+  stage: test
+  script:
+    - echo "Running Pester tests from push event..."
+    - echo "Running on environment dev"
+    - pwsh -Command "./source/Backup/Backup_Blob/Run-EnsureScript.ps1 -Environment dev -ExcludedTags 'DeletedState'"
+  artifacts:
+    paths:
+    - artifacts/
+    when: always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+
+line number 7 represents the test job that runs in the test stage.
+line number 9 represents that it has a collection of independent commands
+line number 10 will print "Running Pester tests from push event..."
+
+line number 11 will print "Running on environment dev"
+line number 12 (3rd command of script section) will run Run-EnsureScript.ps1 script in powershell (pwsh) and pass the excludedtags parameter value.
+
+The artifacts section specifies that the artifacts/ directory should be saved as an artifact, regardless of the pipeline's outcome
+The rules section specifies that this job should only run if the pipeline was triggered by a merge request event or a push event
+
+
+.EnsureBackup_template: &EnsureBlobBackup_definition
+  stage: EnsureBlobBackup
+  script:
+    - pwsh -Command "./source/Backup/Backup_Blob/Run-EnsureScript.ps1 -Environment $Environment -ExcludedTags $ExcludedTags"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+This section defines a template for the EnsureBlobBackup stage. It includes a PowerShell command that runs a script with environment and excluded tags parameters.
+the rules section specifies that this job should only run if the pipeline was triggered by a scheduled event.
+
+
+EnsureBlobBackup_dev:
+  <<: *EnsureBlobBackup_definition
+  when: always
+  rules:
+    - if: $Environment == "dev"
+
+This section defines a job named EnsureBlobBackup_dev that inherits from the EnsureBlobBackup_definition template.
+this section will always run and it's regardless of the previous job results.
+The rules section specifies that this job should only run if the environment is dev
+
+Same goes for the production section.

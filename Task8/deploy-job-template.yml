@@ -1,0 +1,20 @@
+# deploy-job-template.yml
+parameters:
+  - name: environment
+    type: string
+    default: 'dev'
+
+jobs:
+- job: Deploy
+  displayName: 'Deploy to ${{ parameters.environment }}'
+  pool:
+    vmImage: 'windows-latest'
+
+  steps:
+  - task: PowerShell@2
+    inputs:
+      targetType: 'filePath'
+      filePath: './Task8/deploy_script.ps1'
+      arguments: '-Environment ${{ parameters.environment }}'
+    env:
+      ENVIRONMENT: ${{ parameters.environment }}
