@@ -37,13 +37,14 @@ function Generate-OutputCsv
         [ValidateNotNullOrEmpty()]
         [string[]]$MovePropertiesFromCSV,
 
-        [Parameter(Mandatory = $true, Position = 3, HelpMessage = "List of properties which needs to be moved from CSV.")]
+        [Parameter(Mandatory = $true, Position = 4, HelpMessage = "Output csv file name.")]
         [ValidateNotNullOrEmpty()]
         [string]$OutputFileNameInCsv
     )
 
     Begin
     {
+        Write-Host "Begin - Function"
         $homeDir = Split-Path -Parent $MyInvocation.PSCommandPath
     }
     Process
